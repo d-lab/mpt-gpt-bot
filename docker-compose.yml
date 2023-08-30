@@ -1,0 +1,57 @@
+version: '3.3'
+services:
+  api:
+    hostname: mpt-gpt-api
+    container_name: mpt-gpt-api
+    restart: always
+    build: 
+      context: ./be/
+    environment:
+      - PORT=80
+    depends_on:
+      - db
+    volumes:
+    - ./be:/usr/src/app
+  db:
+    container_name: mpt-gpt-postgres
+    image: postgres:11.5-alpine
+    ports:
+      - '5433'
+    volumes:
+      - /var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=mpt-gpt-db
+
+  # pgadmin:
+  #   container_name: pgadmin_container
+  #   image: dpage/pgadmin4
+  #   environment:
+  #     PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+  #     PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+  #     PGADMIN_CONFIG_SERVER_MODE: 'False'
+  #   volumes:
+  #     - './data/pgadmin:/var/lib/pgadmin'
+  #   ports:
+  #     - "${PGADMIN_PORT:-5050}:80"
+  #   depends_on:
+  #     - db
+  #   restart: unless-stopped
+  mpt-chat-gpt:
+    container_name: mpt-chat-gpt
+    build: 
+      context: ./fe/
+    depends_on:
+      - api
+    volumes:
+      - ./web.conf:/etc/nginx/conf.d/default.conf
+    restart: unless-stopped # or "always"
+    ports:
+      - 8080:80
+    command: /bin/sh -c "nginx -g 'daemon off;'"
+
+networks:
+  default:
+    external:
+      name: mephistonginx_mephisto-net
